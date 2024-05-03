@@ -1,6 +1,6 @@
 ---
 title: "GAE10: PCA & NMDS"
-author: "Your Name Here"
+author: "James Simon"
 format: 
   html:
     theme: custom.scss
@@ -25,6 +25,11 @@ library(latex2exp)
 library(patchwork)
 library(kableExtra)
 library(tidyverse)
+library(vegan)
+library(missMDA)
+library(ggrepel)
+library(FactoMineR)
+library(factoextra)
 
 options(scipen = 10)
 
@@ -52,6 +57,8 @@ knitr::include_graphics("Kingfishers.png")
 
 #### Statistical Methods:
 
+In order to analyze the data, I am going to use principal component analysis (PCA) in order to analyze the patterns of colorization in the Kingfishers.
+
 ```{r}
 #| label: Scenario1DataImport
 
@@ -62,9 +69,71 @@ knitr::include_graphics("Kingfishers.png")
 # colors.csv. Please explore any grouping and/or patterning among the species
 # and their ecological/behavioral traits.
 
+df1 <- read_csv("colors.csv", show_col_types = FALSE)
 ```
 
+```{r}
+#| label: fig-scen1biplot
+#| fig-cap: "PCA of colors of the Kingfisher birds"
+
+df1PCA <- PCA(
+  df1,
+                 quanti.sup = 13,
+                 quali.sup = c(1,14:17),
+                 graph=FALSE
+                 )
+fviz_pca_ind(
+  df1PCA,
+  repel = TRUE,
+  label = "none",
+  habillage = c(
+    "Light_environment",
+    "Parental_care",
+    "Territoriality",
+    "Hunting_strategy"
+    
+  ),
+  
+  addEllipses = TRUE)
+```
+
+```{r}
+#| label: fig-scen1biplot2
+#| fig-cap: "PCA of hunting strategies based on Kingfisher feather colors."
+#| fig-asp: 1
+
+df1PCA <- PCA(
+  df1,
+                 quanti.sup = 13,
+                 quali.sup = c(1,14:17),
+                 graph=FALSE
+                 )
+ indfig <-fviz_pca_ind(
+  df1PCA,
+  repel = TRUE,
+  label = "none",
+  habillage = c(
+    #"Light_environment",
+   # "Parental_care",
+    #"Territoriality",
+    "Hunting_strategy"))
+ varfig <- fviz_pca_var(
+   df1PCA,
+   repel = TRUE,
+   label = "var"
+ )
+ varfig +
+   indfig +
+   plot_layout(ncol = 1)
+```
+
+#### Results: 
+
+Within the study, we see that hunting strategy had a significant effect on the color of feathers in the birds, as seen in @fig-scen1biplot2.
+
 ### References:
+
+@babarovicEffectsEcologyBehavior2023
 
 ------------------------------------------------------------------------
 
@@ -78,8 +147,10 @@ In Summer 2011, the researchers visited 17 deer exclosures in upland forests of 
 
 #### Statistical Methods:
 
+In order to analyze the data, I will perform non-metric multidimensional scaling (NMDS) in order to see the difference between the plants within deer exclosure zones and outside of the zones.
+
 ```{r}
-#| label: Scenario2DataImport
+#/ label: Scenario2DataImport
 
 # I have provided data representing the proportion of quadrats each species
 # (columns) was found in as a an index of abundance within each deer exclosure
@@ -88,6 +159,50 @@ In Summer 2011, the researchers visited 17 deer exclosures in upland forests of 
 # Use NMDS to explore the differences in plant community inside and outside the
 # deer exclosures, then test for differences in the plant communities between
 # the deer exclosures and the adjacent forests.
+
+df2 <- read_csv("Sabo_etal_data.csv", show_col_types = FALSE)
 ```
+
+```{r}
+#| label: scen2nMDS
+#| results: "hide"
+
+df2mds <- metaMDS(
+  df2[,-c(1:2)],
+  k=4
+)
+
+df2mds$stress
+
+```
+
+```{r}
+#| label: scen2PERMANOVA
+#| tbl-cap: "PERMANOVA Table to show if there is a difference in plant assemblages between deer exlclosure zones and the surrounding zones."
+
+df2PERMANOVA <- adonis2(
+  df2[,-c(1:2)] ~ Treatment,
+  data = df2,
+  by = "margin",
+  permutations = 1000
+)
+
+kbl(
+  df2PERMANOVA,
+  format = "markdown",
+  digits = c(0,3,3,3,3),
+  col.names = c(
+    "df",
+    "SS",
+    "$R^2$",
+    "F",
+    "P"
+  )
+)
+```
+
+### Results:
+
+We see within @tbl-scen2PERMANOVA that the exclosure of deer is correlated with differences in the plant diversity in the area.
 
 ### References:
